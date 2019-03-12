@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(examples)
 
 
-option(ENABLE_TEST "enablle unittest" ON)
+option(ENABLE_TEST "enablle unittest" OFF)
 option(ENABLE_PROTOBUF_EXAMPLE "protobuf example" OFF)
 
 if (ENABLE_TEST)
