@@ -25,11 +25,11 @@ struct AddressBook
 int main(int argc, char * argv[])
 {
 	AddressBook ab;
-	
+
 	// 序列化为json
 	serialization::json_oarchive oa;
 	serialization::serialize(oa, ab);
-	
+
 	// 打印json数据
 	std::cout << oa.data() << std::endl;
 
