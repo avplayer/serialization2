@@ -10,6 +10,7 @@ include_directories(../include
 
 set(UNITTEST_SOURCES
 	jsontest.cpp
+	xmltest.cpp
 	unittest.cpp
 	)
 

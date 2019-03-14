@@ -31,7 +31,7 @@ private:
     const char *m_where;
 };
 	
-void throw_serialization_error(const char * where, const char * what)
+inline void throw_serialization_error(const char * where, const char * what)
 {
     throw serialization_error(what, where);
 }

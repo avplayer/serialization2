@@ -1,12 +1,11 @@
 cmake_minimum_required (VERSION 2.8)
 
+option(ENABLE_TEST "enablle unittest" OFF)
+option(ENABLE_PROTOBUF_EXAMPLE "protobuf example" OFF)
+
 set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(examples)
-
-
-option(ENABLE_TEST "enablle unittest" OFF)
-option(ENABLE_PROTOBUF_EXAMPLE "protobuf example" OFF)
 
 if (ENABLE_TEST)
 	enable_testing()

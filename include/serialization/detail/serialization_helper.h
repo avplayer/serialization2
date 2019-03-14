@@ -68,10 +68,12 @@ inline void serialize_container_helper(Archive & ar, const T & v)
 {
     serialization_trace trace(__func__, __FILE__, __LINE__);
 
-    ar.save_sequence_start();
+    ar.save_sequence_start(v.size());
     for(const auto & i : v)
     {
+        ar.save_sequence_item_start();
         serialize_helper(ar, i);
+        ar.save_sequence_item_end();
     }
     ar.save_sequence_end();
 }
@@ -165,15 +167,18 @@ inline void unserialize_helper(const Archive & ar, std::vector<T> & v)
 {
 	serialization_trace trace(__func__, __FILE__, __LINE__);
 
-    v.reserve(ar.sequence_size());
-
-    for(size_type i = 0; ar.load_sequence_start(i); ++i)
+    auto size = ar.load_sequence_start();
+    v.reserve(size);
+    for(size_type i = 0; i < size; ++i)
     {
+        ar.load_sequence_item_start(i);
         T tmp;
         unserialize_helper(ar, tmp);
         v.push_back(std::move(tmp));
-        ar.load_sequence_end();
+        ar.load_sequence_item_end();
     }
+
+    ar.load_sequence_end();
 }
 
 //array
@@ -182,15 +187,17 @@ inline void unserialize_helper(const Archive & ar, T (&v)[N])
 {
 	serialization_trace trace(__func__, __FILE__, __LINE__);
 
-    if(ar.sequence_size() != N)
+    auto size = ar.load_sequence_start();
+    if(size != N)
       throw_serialization_error("array", "size error");
 
-    for(size_type i = 0; ar.load_sequence_start(i); ++i)
+    for(size_type i = 0; i < size; ++i)
     {
+        ar.load_sequence_item_start(i);
         unserialize_helper(ar, v[i]);
-        ar.load_sequence_end();
+        ar.load_sequence_item_end();
     }
-
+    ar.load_sequence_end();
 }
 
 //map
@@ -199,14 +206,16 @@ inline void unserialize_helper(const Archive & ar, std::map<Key, Value> & v)
 {
 	serialization_trace trace(__func__, __FILE__, __LINE__);
 
-    for(size_type i = 0; ar.load_sequence_start(i); ++i)
+    auto size = ar.load_sequence_start();
+    for(size_type i = 0; i < size; ++i)
     {
+        ar.load_sequence_item_start(i);
         typename std::pair<Key, Value> tmp;
         unserialize_helper(ar, tmp);
         *std::insert_iterator<std::map<Key, Value>>(v, v.end()) = std::move(tmp);
-        ar.load_sequence_end();
+        ar.load_sequence_item_end();
     }
-
+    ar.load_sequence_end();
 }
 
 } // namespace serialization

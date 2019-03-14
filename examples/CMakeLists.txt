@@ -4,8 +4,8 @@ project(serialize_example)
 
 include_directories(../include)
 
-add_executable(example_json
-	example_json.cpp
+add_executable(example
+	example.cpp
 	)
 
 if(ENABLE_PROTOBUF_EXAMPLE)
@@ -17,13 +17,13 @@ if(ENABLE_PROTOBUF_EXAMPLE)
 
 	file(GLOB ProtoFiles "${CMAKE_CURRENT_SOURCE_DIR}/*.proto")
 	PROTOBUF_GENERATE_CPP(ProtoSources ProtoHeaders ${ProtoFiles})
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+	include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-add_executable(example_protobuf
-	example_protobuf.cpp
-	${ProtoSources}
-	${ProtoHeaders}
-	)
-target_link_libraries(example_protobuf ${PROTOBUF_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+	add_executable(example_protobuf
+		example_protobuf.cpp
+		${ProtoSources}
+		${ProtoHeaders}
+		)
+	target_link_libraries(example_protobuf ${PROTOBUF_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 endif()
 

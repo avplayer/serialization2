@@ -81,23 +81,31 @@ public:
     size_type sequence_size() const
     {
         if(stack_.empty() || (!stack_.top()->IsArray()))
-            return 0;
+            throw_serialization_error("expect array", "");
         return stack_.top()->GetArray().Size();
     }
 
-    bool load_sequence_start(size_type i) const
+    size_type load_sequence_start() const
     {
-        serialization_trace trace(__func__, "json");
-        assert(!stack_.empty());
         if(stack_.empty() || (!stack_.top()->IsArray()))
-            throw_serialization_error("expect array", "");
-        if(i >= stack_.top()->GetArray().Size())
-            return false;
-        stack_.push(&stack_.top()->GetArray()[i]);
-        return true;
+            throw_serialization_error("expect array", "json");
+        return stack_.top()->GetArray().Size();
     }
 
     void load_sequence_end() const
+    {
+    }
+
+    void load_sequence_item_start(size_type i) const
+    {
+        serialization_trace trace(__func__, "json");
+        assert(!stack_.empty());
+        if(i >= stack_.top()->GetArray().Size())
+            throw_serialization_error("array size", "json");
+        stack_.push(&stack_.top()->GetArray()[i]);
+    }
+
+    void load_sequence_item_end() const
     {
         serialization_trace trace(__func__, "json");
         assert(!stack_.empty());

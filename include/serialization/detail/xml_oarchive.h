@@ -1,120 +1,157 @@
 #pragma once
 
-#include <string>
-#include <sstream>
-#include <cstring>
-#include <stack>
+#include <serialization/detail/config.h>
 
 #include <serialization/detail/rapidxml/rapidxml.hpp>
 #include <serialization/detail/rapidxml/rapidxml_print.hpp>
+#include <serialization/detail/rapidjson/internal/itoa.h>
+#include <serialization/detail/rapidjson/internal/dtoa.h>
 
 namespace serialization
 {
 
 class xml_oarchive
 {
-    typedef rapidxml::xml_node<> xml_node_type;
-    typedef rapidxml::xml_document<> xml_document_type;
-    typedef std::string::const_iterator const_iterator;
-    typedef std::string::size_type size_type;
 public:
-    xml_oarchive(const std::string & root = "", size_t size = 0)
-        : root_(root)
-	{
-        if(size != 0)
-            data_.reserve(size);
-	}
+    xml_oarchive()
+    {
+    }
 
     const char * data() const
     {
-        return data_.data();
+        return str_.data();
     }
 
-    size_type size() const
+    std::size_t size() const
     {
-        return data_.size();
+        return str_.size();
     }
 
-	const_iterator begin() const
+    void save_key_start(const char * key)
+    {
+        serialization_trace trace(__func__, key);
+        auto node = document_.allocate_node(rapidxml::node_element, key);
+        current_->append_node(node);
+        current_ = node;
+    }
+
+    void save_key_end(const char * key)
+    {
+        serialization_trace trace(__func__, key);
+        current_ = current_->parent();
+    }
+
+    void save_object_start()
+    {
+    }
+
+    void save_object_end()
+    {
+    }
+
+    void save_sequence_start(size_type size)
+    {
+        serialization_trace trace(__func__, "xml");
+        auto node = document_.allocate_node(rapidxml::node_element, "sequence");
+        auto attr = document_.allocate_attribute("size", document_.allocate_string(std::to_string(size).c_str()));
+        node->append_attribute(attr);
+        current_->append_node(node);
+        current_ = node;
+    }
+
+    void save_sequence_end()
+    {
+        serialization_trace trace(__func__, "xml");
+        current_ = current_->parent();
+    }
+
+    void save_sequence_item_start()
+    {
+        serialization_trace trace(__func__, "xml");
+        auto node = document_.allocate_node(rapidxml::node_element, "item");
+        current_->append_node(node);
+        current_ = node;
+    }
+
+    void save_sequence_item_end()
+    {
+        serialization_trace trace(__func__, "xml");
+        current_ = current_->parent();
+    }
+
+	void save(int v)
 	{
-		return data_.begin();
+		char buffer[64];
+		const char* end = rapidjson::internal::i64toa(v, buffer);
+        current_->value(document_.allocate_string(buffer, end - buffer), end - buffer);
 	}
 
-	const_iterator end() const
+	void save(uint v)
 	{
-		return data_.end();
+		char buffer[64];
+		const char* end = rapidjson::internal::u64toa(v, buffer);
+        current_->value(document_.allocate_string(buffer, end - buffer), end - buffer);
+	}
+
+	void save(int64_t v)
+	{
+		char buffer[64];
+		const char* end = rapidjson::internal::i64toa(v, buffer);
+        current_->value(document_.allocate_string(buffer, end - buffer), end - buffer);
+	}
+
+	void save(uint64_t v)
+	{
+		char buffer[64];
+		const char* end = rapidjson::internal::u64toa(v, buffer);
+        current_->value(document_.allocate_string(buffer, end - buffer), end - buffer);
+	}
+
+	void save(double v)
+    {
+		char buffer[64];
+		const char* end = rapidjson::internal::dtoa(v, buffer);
+        current_->value(document_.allocate_string(buffer, end - buffer), end - buffer);
     }
 
-    void save_start(const char * name)
+    void save(const std::string & v)
     {
-        current_ = create_node(name);
-        parent_->append_node(current_);
-        stack_.push(parent_);
-        parent_ = current_;
+        current_->value(v.c_str(), v.size());
     }
 
-    void save_end(const char * name)
+    void save(bool v)
     {
-        parent_ = stack_.top();
-        stack_.pop();
-        current_ = 0;
-    }
-
-    template<typename T>
-    void save(const T & v)
-    {
-        if(!current_)
-		  throw_serialization_error("save", "xml node null");
-        current_->value(get_string(v, doc_));
+        if(v)
+        {
+            current_->value("true");
+        }
+        else
+        {
+            current_->value("false");
+        }
     }
 
     void serialize_start()
     {
-        doc_.clear();
-        stack_ = decltype(stack_)();
-        parent_ = doc_.allocate_node(rapidxml::node_element, doc_.allocate_string(root_.c_str()));
-        current_ = 0;
-        doc_.append_node(parent_);
+        serialization_trace trace(__func__, "xml");
+        document_.clear();
+        current_ = document_.allocate_node(rapidxml::node_element, "serialization");
+        document_.append_node(current_);
+        str_.clear();
     }
 
     void serialize_end()
     {
-        rapidxml::print(std::back_inserter(data_), doc_);
+        serialization_trace trace(__func__, "xml");
+		rapidxml::print(std::back_inserter<std::string>(str_), document_, rapidxml::print_no_indenting);
     }
 
 private:
-    template<typename Argument, typename Container>
-    bool write_container(const Argument & arg, const Container & in, const char * type, std::size_t size);
+    rapidxml::xml_document<> document_;
 
-    xml_node_type * create_node(const char * name, const char * value = 0, std::size_t value_size = 0)
-    {
-        auto node = doc_.allocate_node(rapidxml::node_element, name, value, 0, value_size);
-        //parent_->append_node(node);
-        return node;
-    }
+    rapidxml::xml_node<> *current_;
 
-    template<typename T>
-    char * get_string(const T & in, xml_document_type & doc)
-    {
-        std::stringstream ss;
-        ss << in;
-        return doc.allocate_string(ss.str().c_str());
-    }
-
-    char * get_string(const std::string & str, xml_document_type & doc)
-    {
-        return doc.allocate_string(str.c_str());
-    }
-
-    std::string data_;
-
-    xml_document_type doc_;
-
-    std::string root_;
-
-    xml_node_type * current_;
-    xml_node_type * parent_;
-    std::stack<xml_node_type *> stack_;
+    std::string str_;
 };
 
 } // namespace serialization

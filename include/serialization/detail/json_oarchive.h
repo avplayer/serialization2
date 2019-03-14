@@ -18,6 +18,16 @@ public:
     {
     }
 
+    const char * data() const
+    {
+        return buffer_.GetString();
+    }
+
+    size_t size() const
+    {
+        return buffer_.GetSize();
+    }
+
     void save_key_start(const char * key)
     {
         serialization_trace trace(__func__, key);
@@ -41,7 +51,7 @@ public:
         writer_.EndObject();
     }
 
-    void save_sequence_start()
+    void save_sequence_start(std::size_t size)
     {
         serialization_trace trace(__func__, "json");
         writer_.StartArray();
@@ -51,6 +61,14 @@ public:
     {
         serialization_trace trace(__func__, "json");
         writer_.EndArray();
+    }
+
+    void save_sequence_item_start()
+    {
+    }
+
+    void save_sequence_item_end()
+    {
     }
 
     void save(bool v)
@@ -100,18 +118,8 @@ public:
         serialization_trace trace(__func__, "json");
     }
 
-    const char * data() const
-    {
-        return buffer_.GetString();
-    }
-
-    size_t size() const
-    {
-        return buffer_.GetSize();
-    }
-
 private:
-	rapidjson::StringBuffer buffer_;
+    rapidjson::StringBuffer buffer_;
 
     rapidjson::Writer<rapidjson::StringBuffer> writer_;
 };

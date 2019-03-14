@@ -5,6 +5,8 @@
 #include <sstream>
 #include <cstring>
 
+#include <serialization/detail/config.h>
+#include <serialization/detail/serialization_error.h>
 #include <serialization/detail/rapidxml/rapidxml.hpp>
 
 namespace serialization
@@ -12,104 +14,162 @@ namespace serialization
 
 class xml_iarchive
 {
-    typedef rapidxml::xml_node<> xml_node_type;
-    typedef rapidxml::xml_document<> xml_document_type;
 public:
-    xml_iarchive(const std::string & root = "", size_t size = 0)
-        : root_(root)
-        , index_(0)
-	{
-	}
-
-    bool load_from_string(std::string & xml)
+    xml_iarchive()
     {
-        doc_.clear();
+    }
+
+    void load_data(char * data)
+    {
+        document_.clear();
         try
         {
-            doc_.parse<0>(&xml[0]);
-            return true;
+            document_.parse<0>(data);
         }
-        catch(const rapidxml::parse_error & )
+        catch(const rapidxml::parse_error & e)
+        {
+            throw_serialization_error("xml parse", e.what());
+        }
+    }
+
+    void load_key_start(const char * key) const
+    {
+        serialization_trace trace(__func__, key);
+
+        auto node = stack_.top()->first_node(key);
+        if(node == nullptr)
+            throw_serialization_error("expect key", key);
+        stack_.push(node);
+    }
+
+    bool load_key_start_optional(const char * key) const
+    {
+        serialization_trace trace(__func__, key);
+
+        auto node = stack_.top()->first_node(key);
+        if(node == nullptr)
         {
             return false;
         }
+        stack_.push(node);
+        return true;
     }
 
-    void load_start(const char * name) const
+    void load_key_end(const char * key) const
     {
-        if(!check_node_name(current_, name))
-		  throw_serialization_error("load start", name);
-        stack_.push(current_);
-        current_ = current_->first_node();
-    }
-
-    void load_end(const char * name) const
-    {
-        assert(stack_.size() != 0);
-        current_ = stack_.top();
+        serialization_trace trace(__func__, key);
         stack_.pop();
-        current_ = current_->next_sibling();
+    }
+
+    void load_object_start() const
+    {
+    }
+
+    void load_object_end() const
+    {
+    }
+
+    size_type load_sequence_start() const
+    {
+        serialization_trace trace(__func__, "xml");
+        auto node = stack_.top()->first_node("sequence");
+        if(node == nullptr)
+        {
+            throw_serialization_error(__func__, "expect sequence");
+        }
+        auto attr = node->first_attribute("size");
+        if(attr == nullptr)
+        {
+            throw_serialization_error(__func__, "expect sequence size");
+        }
+
+        char *end = attr->value();
+        size_type size = std::strtoull(attr->value(), &end, 10);
+        if(end - attr->value() != attr->value_size())
+        {
+            throw_serialization_error(__func__, "bad sequence size");
+        }
+
+        stack_.push(node);
+        node = (size == 0 ? nullptr : stack_.top()->first_node("item"));
+        stack_.push(node);
+
+        return size;
+    }
+
+    void load_sequence_end() const
+    {
+        serialization_trace trace(__func__, "xml");
+        stack_.pop();
+        stack_.pop();
+    }
+
+    bool load_sequence_item_start(size_type i) const
+    {
+        serialization_trace trace(__func__, "xml");
+
+        if(stack_.top() == nullptr)
+        {
+            throw_serialization_error("load sequence item", "xml");
+        }
+        return true;
+    }
+
+    void load_sequence_item_end() const
+    {
+        serialization_trace trace(__func__, "json");
+        stack_.top() = stack_.top()->next_sibling("item");
     }
 
     template<typename T>
-    void load(T & out) const
+    void load(T & v) const
     {
-        assert(stack_.size() != 0);
-        current_ = stack_.top();
-        get_value(current_->value(), out);
+        std::stringstream ss;
+        ss << stack_.top()->value();
+        ss >> v;
+        if(!ss.eof())
+        {
+            throw_serialization_error("load ", "xml");
+        }
+    }
+
+    void load(std::string & v) const
+    {
+        v = stack_.top()->value();
+    }
+
+    void load(bool & v) const
+    {
+        if(std::strcmp(stack_.top()->value(), "true"))
+        {
+            v = true;
+        }
+        else if(std::strcmp(stack_.top()->value(), "false"))
+        {
+            v = false;
+        }
+        throw_serialization_error("load ", "xml");
     }
 
     void unserialize_start() const
     {
-        stack_ = decltype(stack_)();
-        current_ = doc_.first_node();
-        if(!check_node_name(current_, root_.data()))
-		  throw_serialization_error("unserialize start", "check node name");
-        if(!current_)
-		  throw_serialization_error("unserialize start", "check node name");
-        current_ = current_->first_node();
+        serialization_trace trace(__func__, "xml");
+        stack_ = std::stack<const rapidxml::xml_node<> *> {};
+        auto node = document_.first_node("serialization");
+        if(node == nullptr)
+            throw_serialization_error("serilization root", "xml");
+        stack_.push(node);
     }
 
     void unserialize_end() const
     {
+        serialization_trace trace(__func__, "xml");
     }
 
 private:
-    template<typename T>
-    void get_value(const char * str, T & dst) const
-    {
-        if(!str)
-		  throw_serialization_error("get value", "null value");
-        std::stringstream ss;
-        ss << str;
-        ss >> dst;
-		if(!ss.eof())
-		  throw_serialization_error("get value", "eof");
-    }
+    rapidxml::xml_document<> document_;
 
-    void get_value(const char * str, std::string & dst) const
-    {
-        if(!str)
-		  throw_serialization_error("get value", "null value");
-        dst = str;
-    }
-
-    bool check_node_name(xml_node_type * node, const char * str) const
-    {
-        if(node == 0 || std::strcmp(node->name(), str) != 0)
-            return false;
-        return true;
-    }
-
-    xml_document_type doc_;
-
-    std::string root_;
-
-    mutable xml_node_type * current_;
-
-    mutable std::stack<xml_node_type *> stack_;
-
-	mutable size_t index_;
+    mutable std::stack<const rapidxml::xml_node<> * > stack_;
 };
 
 } // namespace serialization
