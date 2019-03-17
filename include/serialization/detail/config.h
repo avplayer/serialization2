@@ -8,8 +8,9 @@
 
 namespace serialization
 {
-  
+
   typedef uint32_t size_type;
+  typedef unsigned int uint;
 
 #if(ENABLE_SERIALIZATION_TRACE)
   struct serialization_trace
