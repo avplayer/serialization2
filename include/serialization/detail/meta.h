@@ -133,12 +133,27 @@
 
 #define SERIALIZATION_MACRO_WRAPPER(...) __VA_ARGS__
 
-#define SERIALIZATION_MAKE_META_IMPL(N, ...) \
-    inline static const std::array<const char*, N> & serialization_meta() \
+#define SERIALIZATION_DEFINE_META_DATA(...) \
+    inline static const auto & serialization_meta() \
     { \
-	    static std::array<const char*, N> meta = { SERIALIZATION_MACRO_WRAPPER(SERIALIZATION_CONCAT(SERIALIZATION_EXPAND, N)(__VA_ARGS__)) }; \
+        static std::array<const char*, serialization::detail::get_args_count(__VA_ARGS__)> meta = { __VA_ARGS__ }; \
         return meta; \
-	} \
+    } \
 
-#define SERIALIZATION_MAKE_META(...) \
-    SERIALIZATION_MAKE_META_IMPL(SERIALIZATION_NARG(__VA_ARGS__), __VA_ARGS__)
+#define SERIALIZATION_DEFINE_META_DATA_HELPER(...) \
+    SERIALIZATION_DEFINE_META_DATA(SERIALIZATION_MACRO_WRAPPER(SERIALIZATION_CONCAT(SERIALIZATION_EXPAND, SERIALIZATION_NARG(__VA_ARGS__))(__VA_ARGS__)))
+
+namespace serialization
+{
+namespace detail
+{
+
+template<typename ...Args>
+constexpr size_t get_args_count(Args &&...)
+{ 
+    return sizeof...(Args); 
+}
+
+}
+}
+

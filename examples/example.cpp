@@ -38,6 +38,20 @@ struct AddressBook
     SERIALIZATION_DEFINE(people, opt, mapTest, vectorTest)
 };
 
+struct Customize
+{
+    int a;
+    std::string b;
+
+    bool operator==(const Customize & other) const
+    {
+        return (a == other.a) && (b == other.b);
+    }
+
+    SERIALIZATION_DEFINE_META_DATA("aaa", "bbb")
+    SERIALIZATION_DEFINE_META_FUNC(a, b)
+};
+
 int main(int argc, char * argv[])
 {
     try
@@ -85,6 +99,14 @@ int main(int argc, char * argv[])
         xml_ia.load_data(&xml_str[0]);
         serialization::unserialize(xml_ia, ab3);
         std::cout << "xml unserilize result: " << (ab == ab3 ? "success" : "fail") << std::endl;
+
+        //test coustomize 
+        Customize c{123, "456"}, c2;
+        serialization::serialize(json_oa, c);
+        std::cout << "customize json serilize result: " << json_oa.data() << std::endl;
+        json_ia.load_data(json_oa.data());
+        serialization::unserialize(json_ia, c2);
+        std::cout << "customize json unserilize result: " << (c == c2 ? "success" : "fail") << std::endl;
 
     }
     catch (serialization::serialization_error & err)

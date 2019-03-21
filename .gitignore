@@ -261,6 +261,7 @@ build*
 .vscode
 .vscode/.cmaketools.json
 .vscode/launch.json
+CMakeLists.txt.user
 CMakeLists.txt.asc
 CMakeLists.txt.asc.gpg
 CMakeLists.txt.gpg
