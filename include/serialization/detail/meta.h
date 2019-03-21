@@ -136,7 +136,7 @@
 #define SERIALIZATION_DEFINE_META_DATA(...) \
     inline static const auto & serialization_meta() \
     { \
-        static std::array<const char*, serialization::detail::get_args_count(__VA_ARGS__)> meta = { __VA_ARGS__ }; \
+        static std::array<const char*, decltype(serialization::detail::make_argument_count(__VA_ARGS__))::value> meta = { __VA_ARGS__ }; \
         return meta; \
     } \
 
@@ -149,9 +149,15 @@ namespace detail
 {
 
 template<typename ...Args>
-constexpr size_t get_args_count(Args &&...)
-{ 
-    return sizeof...(Args); 
+struct argument_count
+{
+    static const size_t value = sizeof...(Args);
+};
+
+template<typename ...Args>
+constexpr auto make_argument_count(Args...)
+{
+    return argument_count<Args...>{};
 }
 
 }
