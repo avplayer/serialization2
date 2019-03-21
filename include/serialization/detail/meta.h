@@ -135,7 +135,7 @@
 #define SERIALIZATION_MACRO_WRAPPER(...) __VA_ARGS__
 
 #define SERIALIZATION_DEFINE_META_DATA(...) \
-    inline static const auto & serialization_meta() \
+    inline static const std::array<const char*, std::tuple_size<decltype(std::make_tuple(__VA_ARGS__))>::value> & serialization_meta() \
     { \
         static std::array<const char*, std::tuple_size<decltype(std::make_tuple(__VA_ARGS__))>::value> meta = { __VA_ARGS__ }; \
         return meta; \
