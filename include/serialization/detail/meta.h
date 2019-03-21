@@ -1,4 +1,5 @@
 ﻿#include <array>
+#include <tuple>
 
 #define SERIALIZATION_EXPAND_1(first, ...) #first
 #define SERIALIZATION_EXPAND_2(first, ...) #first , SERIALIZATION_MACRO_WRAPPER(SERIALIZATION_EXPAND_1(__VA_ARGS__))
@@ -136,30 +137,10 @@
 #define SERIALIZATION_DEFINE_META_DATA(...) \
     inline static const auto & serialization_meta() \
     { \
-        static std::array<const char*, decltype(serialization::detail::make_argument_count(__VA_ARGS__))::value> meta = { __VA_ARGS__ }; \
+        static std::array<const char*, std::tuple_size<decltype(std::make_tuple(__VA_ARGS__))>::value> meta = { __VA_ARGS__ }; \
         return meta; \
     } \
 
 #define SERIALIZATION_DEFINE_META_DATA_HELPER(...) \
     SERIALIZATION_DEFINE_META_DATA(SERIALIZATION_MACRO_WRAPPER(SERIALIZATION_CONCAT(SERIALIZATION_EXPAND, SERIALIZATION_NARG(__VA_ARGS__))(__VA_ARGS__)))
-
-namespace serialization
-{
-namespace detail
-{
-
-template<typename ...Args>
-struct argument_count
-{
-    static const size_t value = sizeof...(Args);
-};
-
-template<typename ...Args>
-constexpr auto make_argument_count(Args...)
-{
-    return argument_count<Args...>{};
-}
-
-}
-}
 

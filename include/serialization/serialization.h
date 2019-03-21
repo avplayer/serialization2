@@ -10,15 +10,13 @@
 #include <serialization/detail/config.h>
 #include <serialization/detail/json_iarchive.h>
 #include <serialization/detail/json_oarchive.h>
-#include <iostream>
-
 
 #define SERIALIZATION_DEFINE_META_FUNC(...) \
 template<typename Archive> \
 void serialize_impl(Archive & ar) const \
 { \
     serialization::serialization_trace trace(__func__, __FILE__, __LINE__); \
-    static_assert(std::decay<decltype(serialization_meta())>::type().size() == decltype(serialization::detail::make_argument_count(__VA_ARGS__))::value , "serialization meta data size error"); \
+    static_assert(std::tuple_size<std::decay<decltype(serialization_meta())>::type >::value == std::tuple_size<decltype(std::make_tuple(__VA_ARGS__))>::value , "serialization meta data size error"); \
     serialization::serialize_unpack(serialization_meta().begin(), ar, ##__VA_ARGS__); \
 } \
 \
@@ -26,7 +24,7 @@ template<typename Archive> \
 void unserialize_impl(const Archive & ar) \
 { \
     serialization::serialization_trace trace(__func__, __FILE__, __LINE__); \
-    static_assert(std::decay<decltype(serialization_meta())>::type().size() == decltype(serialization::detail::make_argument_count(__VA_ARGS__))::value , "serialization meta data size error"); \
+    static_assert(std::tuple_size<std::decay<decltype(serialization_meta())>::type >::value == std::tuple_size<decltype(std::make_tuple(__VA_ARGS__))>::value , "serialization meta data size error"); \
     serialization::unserialize_unpack(serialization_meta().begin(), ar, ##__VA_ARGS__);\
 }
 
