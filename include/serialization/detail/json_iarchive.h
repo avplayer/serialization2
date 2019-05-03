@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 #include <serialization/detail/config.h>
 #include <serialization/detail/serialization_error.h>
 
@@ -132,7 +134,7 @@ public:
             throw_serialization_error("json", "expect uint");
         v = stack_.top()->GetUint();
     }
-
+    
     void load(int64_t & v) const
     {
         if(stack_.empty() || (!stack_.top()->IsInt64()))
@@ -141,6 +143,22 @@ public:
     }
 
     void load(uint64_t & v) const
+    {
+        if(stack_.empty() || (!stack_.top()->IsUint64()))
+            throw_serialization_error("json", "expect uint64");
+        v = stack_.top()->GetUint64();
+    }
+
+    template<typename T>
+    std::enable_if_t<std::is_signed<T>::value> load(T & v) const
+    {
+        if(stack_.empty() || (!stack_.top()->IsUint64()))
+            throw_serialization_error("json", "expect uint64");
+        v = stack_.top()->GetInt64();
+    }
+
+    template<typename T>
+    std::enable_if_t<std::is_unsigned<T>::value> load(T & v) const
     {
         if(stack_.empty() || (!stack_.top()->IsUint64()))
             throw_serialization_error("json", "expect uint64");
